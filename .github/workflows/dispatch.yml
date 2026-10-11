@@ -1,0 +1,34 @@
+name: Dispatch to OpenClaw agent
+
+# Trigger contract (decided in the architecture doc):
+#   - only `issues.labeled` (not `opened`) -> writing an issue never fires by accident
+#   - the `dispatch` label is the arming switch; `agent:<id>` selects the target agent
+#   - re-applying `dispatch` re-dispatches; removing it disarms
+on:
+  issues:
+    types: [labeled]
+
+# Least privilege: the dispatch step only needs to read the issue and post a comment.
+permissions:
+  contents: read
+  issues: write
+
+# One dispatch per issue at a time; queued rather than cancelled so no work is dropped.
+concurrency:
+  group: dispatch-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    # Gate on the arming label before we even claim a runner.
+    if: github.event.label.name == 'dispatch'
+    # `javis` = our stack's runner labels; drop it to route this repo elsewhere.
+    runs-on: [self-hosted, dispatch, javis]
+    timeout-minutes: 40
+
+    steps:
+      - name: Dispatch to agent
+        env:
+          # Scoped per-repo by GitHub; used only for the reply comment.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: /dispatch/dispatch.sh
