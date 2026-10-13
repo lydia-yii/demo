@@ -15,7 +15,7 @@ permissions:
 
 # One dispatch per issue at a time; queued rather than cancelled so no work is dropped.
 concurrency:
-  group: dispatch-${{ github.event.issue.number }}
+  group: dispatch-${{ github.repository }}-${{ github.event.issue.number }}
   cancel-in-progress: false
 
 jobs:
